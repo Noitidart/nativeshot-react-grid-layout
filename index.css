@@ -1,0 +1,12 @@
+html {
+	-moz-user-select: none;
+	cursor: default;
+}
+
+.react-grid-layout {
+	background-color: steelblue;
+}
+
+.react-grid-item {
+	background-color: springgreen;
+}
