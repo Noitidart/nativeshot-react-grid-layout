@@ -8,7 +8,7 @@ var hydrant = {
 			"src": "http://i.imgur.com/vQ4VQ4v.png"
 		}
 	}, {
-		"category": "uploads_imgur",
+		"category": "uploads_imguranon",
 		"n": "7H0iz0I",
 		"x": "jhxlcLtDMbdLoBH",
 		"d": 3,
@@ -32,7 +32,7 @@ var hydrant = {
 			"src": "http://i.imgur.com/XUFm2HH.png"
 		}
 	}, {
-		"category": "uploads_imgur",
+		"category": "uploads_imguranon",
 		"n": "eDFg0n4",
 		"x": "rnSbu8jI60q5eJC",
 		"d": 6,
@@ -72,7 +72,7 @@ var hydrant = {
 			"src": "http://i.imgur.com/8uu9KJR.png"
 		}
 	}, {
-		"category": "uploads_imgur",
+		"category": "uploads_imguranon",
 		"n": "FO3tzAI",
 		"x": "6XV78vfE3itb85t",
 		"d": 12,
@@ -272,7 +272,7 @@ var Gallery = React.createClass({
 				lg: images.map( (image, i) => {
 					var w = 4;
 					var cols = 12;
-					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:1, i:image.d.toString() };
+					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:2, i:image.d.toString() };
 				}),
 				md: images.map( (image, i) => {
 					var w = 3;
@@ -300,12 +300,13 @@ var Gallery = React.createClass({
 			isDraggable: false,
 			isResizable: false,
 			measureBeforeMount: false,
-			useCSSTransforms: true
+			useCSSTransforms: true,
+			margin: [10, 20]
 		});
 
 		return React.createElement(ReactGridLayout.WidthProvider(ReactGridLayout.Responsive), attr,
 			images.map(image => {
-				return React.createElement('div', { key:image.d.toString() },
+				return React.createElement('div', { key:image.d.toString(), style:{overflow:'hidden'} },
 					// React.createElement('span', undefined,
 					// 	image.d
 					// )
@@ -367,7 +368,11 @@ var GalleryContainer = ReactRedux.connect(
 		} else if (active_filter == 'noimgs') {
 			images = [];
 		} else {
-			images = log.filter(entry => entry.category.includes(active_filter))
+			if (active_filter.includes('_')) {
+				images = log.filter(entry => entry.category == active_filter);
+			} else {
+				images = log.filter(entry => entry.category.startsWith(active_filter+'_'));
+			}
 		}
 
 		return {
@@ -412,6 +417,8 @@ window.addEventListener('DOMContentLoaded', function() {
 	// 	// dont update hydrant if its undefined, otherwise it will screw up all default values for redux
 	// 	hydrant = aArg.hydrant;
 	// }
+
+	hydrant.log.sort( (a,b) => a.d < b.d );
 
 	store = Redux.createStore(app);
 
