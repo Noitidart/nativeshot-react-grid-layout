@@ -264,6 +264,17 @@ var Filters = React.createClass({
 });
 
 var Gallery = React.createClass({
+	componentDidMount: function() {
+		this.recalcGridWidth();
+		window.addEventListener('resize', this.recalcGridWidth, false);
+	},
+	componentWillUnmount: function() {
+		window.removeEventListener('resize', this.recalcGridWidth, false);
+	},
+	recalcGridWidth: function() {
+		this.grid_width = ReactDOM.findDOMNode(this).offsetWidth;
+		// console.log('this.grid_width:', this.grid_width);
+	},
 	getLayouts: function() {
 		var { images, breakpoints, cols } = this.props;
 		var ws = {lg:4, md:3, sm:3, xs:2, xxs:2};
@@ -275,12 +286,19 @@ var Gallery = React.createClass({
 			layouts[breakpoint] = images.map( (image, i) => {
 				var w = ws[breakpoint];
 				var col = cols[breakpoint];
+				var grid_width = breakpoints[breakpoint];
 
 				// get height
 				var h;
 				switch (image.status) {
 					case 'LOADED':
-							h = image.naturalHeight;
+							// var actual_item_width = grid_width / w;
+							// console.log('actual_item_width:', actual_item_width);
+							var actual_width = Math.round((this.grid_width / col) * w);
+							// console.log('actual_width:', actual_width);
+							var scale_factor = actual_width / image.naturalWidth;
+							console.log('scale_factor:', scale_factor);
+							h = Math.round(image.naturalHeight * scale_factor);
 						break;
 					case 'LOADING':
 							h = 150;
@@ -306,6 +324,10 @@ var Gallery = React.createClass({
 			isResizable: false
 		}
 	},
+	// onWidthChange: function(aContainerWidth, aMargin, aCols) {
+	// 	console.log('width change:', {aContainerWidth, aMargin, aCols});
+	// 	// cant use this as it only triggers on breakpoint change - https://github.com/STRML/react-grid-layout/issues/276
+	// },
 	render: function() {
 		var { images } = this.props;
 
@@ -313,6 +335,7 @@ var Gallery = React.createClass({
 			layouts: this.getLayouts(),
 			measureBeforeMount: false,
 			useCSSTransforms: true
+			// onWidthChange: this.onWidthChange
 		});
 
 		return React.createElement(ReactGridLayout.WidthProvider(ReactGridLayout.Responsive), attr,
