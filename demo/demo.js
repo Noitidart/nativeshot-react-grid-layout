@@ -37,7 +37,7 @@ var hydrant = {
 		"x": "rnSbu8jI60q5eJC",
 		"d": 6,
 		"noWriteObj": {
-			"src": "http://i.imgur.com/eDFg0n4.png"
+			"src": "http://i.imgur.com/eDFg0n4____.png"
 		}
 	}, {
 		"category": "uploads_imgur",
@@ -90,6 +90,8 @@ const TRANSITION_COUNTER = 'TRANSITION_COUNTER';
 
 const SET_FILTER = 'SET_FILTER';
 
+const RELAYOUT_GALLERY = 'RELAYOUT_GALLERY';
+
 // ACTION CREATORS
 var next_counterid = 0;
 function addCounter(transition, duration, end, mountval=50) {
@@ -122,6 +124,12 @@ function setFilter(filter) {
 	return {
 		type: SET_FILTER,
 		filter
+	}
+}
+
+function relayoutGallery() {
+	return {
+		type: RELAYOUT_GALLERY
 	}
 }
 // REDUCERS
@@ -169,6 +177,8 @@ function counters(state=[], action) {
 
 function log(state=hydrant.log, action) {
 	switch (action.type) {
+		case RELAYOUT_GALLERY:
+			return [...state];
 		default:
 			return state;
 	}
@@ -264,53 +274,117 @@ var Filters = React.createClass({
 });
 
 var Gallery = React.createClass({
+	componentDidMount: function() {
+		this.relayout_timeout = 0;
+		this.recalcGridWidth();
+		window.addEventListener('resize', this.recalcGridWidth, false);
+	},
+	componentWillUnmount: function() {
+		window.removeEventListener('resize', this.recalcGridWidth, false);
+	},
+	recalcGridWidth: function() {
+		var now_grid_width = ReactDOM.findDOMNode(this).offsetWidth;
+		if (this.grid_width === undefined) {
+			this.grid_width = now_grid_width;
+		} else {
+			if (this.grid_width !== now_grid_width) {
+				this.grid_width = now_grid_width;
+				clearTimeout(this.relayout_timeout);
+				this.relayout_timeout = setTimeout(function() {
+					store.dispatch(relayoutGallery());
+				}, 100);
+			}
+		}
+	},
+	getLayouts: function() {
+		var { images, breakpoints, cols } = this.props;
+		var ws = {lg:4, md:3, sm:3, xs:2, xxs:2};
+
+		console.log({ images, cols, breakpoints });
+
+		var layouts = {};
+		for (var breakpoint in breakpoints) {
+
+			// get specifics for use in images.map
+			var w = ws[breakpoint];
+			var col = cols[breakpoint];
+			var grid_width = breakpoints[breakpoint];
+
+			// get actual column width - really only needed for the current breakpoint
+			var actual_col_width = Math.round((this.grid_width / col) * w); // col width in pixels
+			// console.log('actual_col_width:', actual_col_width);
+			// console.error('breakpoint:', breakpoint, 'col', cols[breakpoint], 'w:', w);
+
+			layouts[breakpoint] = images.map( (image, i) => {
+
+				// get height
+				var h;
+				switch (image.status) {
+					case 'LOADED':
+							var scale_factor = actual_col_width / image.naturalWidth;
+							// console.log('scale_factor:', scale_factor);
+							h = Math.round(image.naturalHeight * scale_factor);
+							// console.log('actual_col_width should be img width, it is:', actual_col_width, 'now this is scale by:', scale_factor, 'so the orig heigh of:', image.naturalHeight, 'will be scaled to:', h);
+						break;
+					case 'LOADING':
+							h = 150;
+						break;
+					default:
+						h = 100;
+				}
+
+				console.log(i*w%col, Math.floor(i*w/col));
+
+				return { x:i*w%col, y:Math.floor(i*w/col), w, h, i:image.d.toString() };
+			} )
+		}
+		console.log('layouts:', layouts);
+
+		return layouts;
+	},
+	getDefaultProps: function() {
+		return {
+			breakpoints: {lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0},
+			cols: {lg: 12, md: 9, sm: 6, xs: 4, xxs: 2},
+			rowHeight: 1,
+			margin: [0,0],
+			isDraggable: false,
+			isResizable: false
+		}
+	},
+	// onWidthChange: function(aContainerWidth, aMargin, aCols) {
+	// 	console.log('width change:', {aContainerWidth, aMargin, aCols});
+	// 	// cant use this as it only triggers on breakpoint change - https://github.com/STRML/react-grid-layout/issues/276
+	// },
 	render: function() {
 		var { images } = this.props;
 
 		var attr = Object.assign({}, this.props, {
-			layouts: {
-				lg: images.map( (image, i) => {
-					var w = 4;
-					var cols = 12;
-					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:2, i:image.d.toString() };
-				}),
-				md: images.map( (image, i) => {
-					var w = 3;
-					var cols = 9;
-					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:1, i:image.d.toString() };
-				}),
-				sm: images.map( (image, i) => {
-					var w = 3;
-					var cols = 6;
-					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:1, i:image.d.toString() };
-				}),
-				xs: images.map( (image, i) => {
-					var w = 2;
-					var cols = 4;
-					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:1, i:image.d.toString() };
-				}),
-				xxs: images.map( (image, i) => {
-					var w = 2;
-					var cols = 2;
-					return { x:i*w%cols, y:Math.floor(i*w/cols), w, h:1, i:image.d.toString() };
-				})
-			},
-			breakpoints: {lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0},
-			cols: {lg: 12, md: 10, sm: 6, xs: 4, xxs: 2},
-			isDraggable: false,
-			isResizable: false,
+			layouts: this.getLayouts(),
 			measureBeforeMount: false,
-			useCSSTransforms: true,
-			margin: [10, 20]
+			useCSSTransforms: true
+			// onWidthChange: this.onWidthChange
 		});
 
 		return React.createElement(ReactGridLayout.WidthProvider(ReactGridLayout.Responsive), attr,
 			images.map(image => {
-				return React.createElement('div', { key:image.d.toString(), style:{overflow:'hidden'} },
-					// React.createElement('span', undefined,
-					// 	image.d
-					// )
-					React.createElement('img', { src:image.noWriteObj.src, style:{width:'100%'} })
+
+				var grid_item_content;
+				switch (image.status) {
+					case 'LOADED':
+							grid_item_content = React.createElement('img', { src:image.noWriteObj.src });
+						break;
+					case 'LOADING':
+							grid_item_content = Loading(); // React.createElement(Loading);
+						break;
+					default:
+						grid_item_content = 'Unknown content for image status: ' + image.status;
+				}
+
+				return React.createElement('div', { key:image.d.toString() },
+					React.createElement('div', { className:'react-grid-item-subwrap' },
+						grid_item_content
+					)
 				)
 			})
 		);
@@ -349,6 +423,10 @@ var Counters = React.createClass({
 	}
 });
 
+var Loading = () => React.createElement('div', { className:'uil-default-css', style:{transform:'scale(0.66)'} },
+	[0, 36, 72, 108, 144, 180, 216, 252, 288, 324].map( deg => React.createElement('div', {style:{transform:'rotate('+deg+'deg) translate(0,-60px)'}}) )
+);
+
 // REACT COMPONENTS - CONTAINER
 var CountersContainer = ReactRedux.connect(
 	function mapStateToProps(state) {
@@ -358,6 +436,8 @@ var CountersContainer = ReactRedux.connect(
 	}
 )(Counters);
 
+var preload = {};
+var img_loaded_timeout = 0;
 var GalleryContainer = ReactRedux.connect(
 	function mapStateToProps(state) {
 		var { active_filter, log } = state;
@@ -374,6 +454,47 @@ var GalleryContainer = ReactRedux.connect(
 				images = log.filter(entry => entry.category.startsWith(active_filter+'_'));
 			}
 		}
+
+		// preload the images
+		images.forEach(image => {
+			var preload_entry = preload[image.noWriteObj.src];
+			if (preload_entry) {
+				if (preload_entry.status == 'LOADED') {
+					image.naturalHeight = preload_entry.img.naturalHeight;
+					image.naturalWidth = preload_entry.img.naturalWidth;
+				}
+				console.log('preload_entry:', preload_entry);
+			} else {
+				preload[image.noWriteObj.src] = {};
+				preload_entry = preload[image.noWriteObj.src];
+
+				preload[image.noWriteObj.src].img = new Image();
+				preload[image.noWriteObj.src].status = 'LOADING';
+				preload[image.noWriteObj.src].img.onerror = function() {
+					preload[image.noWriteObj.src].status = 'ERROR';
+					clearTimeout(img_loaded_timeout);
+					img_loaded_timeout = setTimeout(function() {
+						store.dispatch(relayoutGallery());
+					}, 100);
+				};
+				preload[image.noWriteObj.src].img.onabort = function() {
+					preload[image.noWriteObj.src].status = 'ABORTED';
+					clearTimeout(img_loaded_timeout);
+					img_loaded_timeout = setTimeout(function() {
+						store.dispatch(relayoutGallery());
+					}, 100);
+				};
+				preload[image.noWriteObj.src].img.onload = function() {
+					preload[image.noWriteObj.src].status = 'LOADED';
+					clearTimeout(img_loaded_timeout);
+					img_loaded_timeout = setTimeout(function() {
+						store.dispatch(relayoutGallery());
+					}, 100);
+				};
+				preload[image.noWriteObj.src].img.src = image.noWriteObj.src;
+			}
+			image.status = preload_entry.status;
+		});
 
 		return {
 			images,
