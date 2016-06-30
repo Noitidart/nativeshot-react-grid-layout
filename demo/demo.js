@@ -37,7 +37,7 @@ var hydrant = {
 		"x": "rnSbu8jI60q5eJC",
 		"d": 6,
 		"noWriteObj": {
-			"src": "http://i.imgur.com/eDFg0n4.png"
+			"src": "http://i.imgur.com/eDFg0n4____.png"
 		}
 	}, {
 		"category": "uploads_imgur",
@@ -330,7 +330,7 @@ var Gallery = React.createClass({
 							h = 150;
 						break;
 					default:
-						h = 50;
+						h = 100;
 				}
 
 				console.log(i*w%col, Math.floor(i*w/col));
@@ -440,6 +440,7 @@ var CountersContainer = ReactRedux.connect(
 )(Counters);
 
 var preload = {};
+var img_loaded_timeout = 0;
 var GalleryContainer = ReactRedux.connect(
 	function mapStateToProps(state) {
 		var { active_filter, log } = state;
@@ -474,12 +475,24 @@ var GalleryContainer = ReactRedux.connect(
 				preload[image.noWriteObj.src].status = 'LOADING';
 				preload[image.noWriteObj.src].img.onerror = function() {
 					preload[image.noWriteObj.src].status = 'ERROR';
+					clearTimeout(img_loaded_timeout);
+					img_loaded_timeout = setTimeout(function() {
+						store.dispatch(relayoutGallery());
+					}, 100);
 				};
 				preload[image.noWriteObj.src].img.onabort = function() {
 					preload[image.noWriteObj.src].status = 'ABORTED';
+					clearTimeout(img_loaded_timeout);
+					img_loaded_timeout = setTimeout(function() {
+						store.dispatch(relayoutGallery());
+					}, 100);
 				};
 				preload[image.noWriteObj.src].img.onload = function() {
 					preload[image.noWriteObj.src].status = 'LOADED';
+					clearTimeout(img_loaded_timeout);
+					img_loaded_timeout = setTimeout(function() {
+						store.dispatch(relayoutGallery());
+					}, 100);
 				};
 				preload[image.noWriteObj.src].img.src = image.noWriteObj.src;
 			}
