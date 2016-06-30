@@ -90,6 +90,8 @@ const TRANSITION_COUNTER = 'TRANSITION_COUNTER';
 
 const SET_FILTER = 'SET_FILTER';
 
+const RELAYOUT_GALLERY = 'RELAYOUT_GALLERY';
+
 // ACTION CREATORS
 var next_counterid = 0;
 function addCounter(transition, duration, end, mountval=50) {
@@ -122,6 +124,12 @@ function setFilter(filter) {
 	return {
 		type: SET_FILTER,
 		filter
+	}
+}
+
+function relayoutGallery() {
+	return {
+		type: RELAYOUT_GALLERY
 	}
 }
 // REDUCERS
@@ -169,6 +177,8 @@ function counters(state=[], action) {
 
 function log(state=hydrant.log, action) {
 	switch (action.type) {
+		case RELAYOUT_GALLERY:
+			return [...state];
 		default:
 			return state;
 	}
@@ -265,6 +275,7 @@ var Filters = React.createClass({
 
 var Gallery = React.createClass({
 	componentDidMount: function() {
+		this.relayout_timeout = 0;
 		this.recalcGridWidth();
 		window.addEventListener('resize', this.recalcGridWidth, false);
 	},
@@ -272,8 +283,18 @@ var Gallery = React.createClass({
 		window.removeEventListener('resize', this.recalcGridWidth, false);
 	},
 	recalcGridWidth: function() {
-		this.grid_width = ReactDOM.findDOMNode(this).offsetWidth;
-		// console.log('this.grid_width:', this.grid_width);
+		var now_grid_width = ReactDOM.findDOMNode(this).offsetWidth;
+		if (this.grid_width === undefined) {
+			this.grid_width = now_grid_width;
+		} else {
+			if (this.grid_width !== now_grid_width) {
+				this.grid_width = now_grid_width;
+				clearTimeout(this.relayout_timeout);
+				this.relayout_timeout = setTimeout(function() {
+					store.dispatch(relayoutGallery());
+				}, 100);
+			}
+		}
 	},
 	getLayouts: function() {
 		var { images, breakpoints, cols } = this.props;
@@ -303,6 +324,7 @@ var Gallery = React.createClass({
 							var scale_factor = actual_col_width / image.naturalWidth;
 							// console.log('scale_factor:', scale_factor);
 							h = Math.round(image.naturalHeight * scale_factor);
+							// console.log('actual_col_width should be img width, it is:', actual_col_width, 'now this is scale by:', scale_factor, 'so the orig heigh of:', image.naturalHeight, 'will be scaled to:', h);
 						break;
 					case 'LOADING':
 							h = 150;
