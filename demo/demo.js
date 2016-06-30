@@ -283,21 +283,25 @@ var Gallery = React.createClass({
 
 		var layouts = {};
 		for (var breakpoint in breakpoints) {
+
+			// get specifics for use in images.map
+			var w = ws[breakpoint];
+			var col = cols[breakpoint];
+			var grid_width = breakpoints[breakpoint];
+
+			// get actual column width - really only needed for the current breakpoint
+			var actual_col_width = Math.round((this.grid_width / col) * w); // col width in pixels
+			// console.log('actual_col_width:', actual_col_width);
+			// console.error('breakpoint:', breakpoint, 'col', cols[breakpoint], 'w:', w);
+
 			layouts[breakpoint] = images.map( (image, i) => {
-				var w = ws[breakpoint];
-				var col = cols[breakpoint];
-				var grid_width = breakpoints[breakpoint];
 
 				// get height
 				var h;
 				switch (image.status) {
 					case 'LOADED':
-							// var actual_item_width = grid_width / w;
-							// console.log('actual_item_width:', actual_item_width);
-							var actual_width = Math.round((this.grid_width / col) * w);
-							// console.log('actual_width:', actual_width);
-							var scale_factor = actual_width / image.naturalWidth;
-							console.log('scale_factor:', scale_factor);
+							var scale_factor = actual_col_width / image.naturalWidth;
+							// console.log('scale_factor:', scale_factor);
 							h = Math.round(image.naturalHeight * scale_factor);
 						break;
 					case 'LOADING':
@@ -306,6 +310,8 @@ var Gallery = React.createClass({
 					default:
 						h = 50;
 				}
+
+				console.log(i*w%col, Math.floor(i*w/col));
 
 				return { x:i*w%col, y:Math.floor(i*w/col), w, h, i:image.d.toString() };
 			} )
@@ -317,7 +323,7 @@ var Gallery = React.createClass({
 	getDefaultProps: function() {
 		return {
 			breakpoints: {lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0},
-			cols: {lg: 12, md: 10, sm: 6, xs: 4, xxs: 2},
+			cols: {lg: 12, md: 9, sm: 6, xs: 4, xxs: 2},
 			rowHeight: 1,
 			margin: [0,0],
 			isDraggable: false,
