@@ -382,12 +382,9 @@ var Gallery = React.createClass({
 				}
 
 				return React.createElement('div', { key:image.d.toString() },
-					// React.createElement('span', undefined,
-					// 	image.d
-					// )
-					// React.createElement('img', { src:image.noWriteObj.src, style:{width:'100%'} })
-					// React.createElement(Loading)
-					grid_item_content
+					React.createElement('div', { className:'react-grid-item-subwrap' },
+						grid_item_content
+					)
 				)
 			})
 		);

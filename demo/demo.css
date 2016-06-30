@@ -11,7 +11,16 @@
 	overflow: hidden;
 }
 
-.react-grid-item img {
+/* grid item subwrap */
+.react-grid-item-subwrap {
+	width: 100%;
+	padding: 10px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+}
+.react-grid-item-subwrap img {
 	width: 100%;
 }
 
